@@ -4,6 +4,8 @@
 // Michael Bone
 // 2nd August 2018
 
+"use strict";
+
 let cheerio = require("cheerio");
 let request = require("request-promise-native");
 let sqlite3 = require("sqlite3").verbose();
