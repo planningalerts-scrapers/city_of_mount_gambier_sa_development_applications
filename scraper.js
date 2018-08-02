@@ -82,6 +82,25 @@ async function main() {
     else
         console.log(`There are ${pageCount} pages to parse.`)
 
+    let options = {
+        "url": "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom=01%2F07%2F2018&dateTo=31%2F07%2F2018&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search",
+        headers: {
+            "Accept": "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US, en; q=0.5",
+            "Cache-Control": "max-age=0",
+            "Connection": "Keep-Alive",
+            "Cookie": "_gid=GA1.4.1569233278.1533210364; _ga=GA1.4.280869361.1533210364; JSESSIONID_live=00009jtwT47i0NJa1MMr5gbHK5q:-1",
+            "Host": "ecouncil.mountgambier.sa.gov.au",
+            "Referer": "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiryInit.do?nodeNum=21461",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134"
+        }
+    };
+
+    body = await request(options);
+    $ = cheerio.load(body);
+
     // Process the text from each page.
     //
     // for (let pageIndex = 1; pageIndex <= pageCount; pageIndex++) {
