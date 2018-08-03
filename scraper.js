@@ -65,26 +65,30 @@ async function main() {
 
     let database = await initializeDatabase();
 
-    // Retrieve the first page.
+    // Retrieve the main page.
 
     console.log(`Retrieving page: ${DevelopmentApplicationsUrl}`);
-    let jar = request.jar();  // this will end up containing the JSESSIONID_live cookie (required for the subsequent request)
-    let body = await request({ url: DevelopmentApplicationsUrl, jar: jar });
+    let jar = request.jar();  // this cookie jar will end up containing the JSESSIONID_live cookie after the first request; the cookie is required for the second request
+    await request({ url: DevelopmentApplicationsUrl, jar: jar });
+
+    // Retrieve the results of a search.
+
+    console.log("Retrieving search results.");
+    let body = await request({ url: "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom=01%2F07%2F2018&dateTo=31%2F07%2F2018&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search", jar: jar });
     let $ = cheerio.load(body);
 
-    let options = {
-        url: "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom=01%2F07%2F2018&dateTo=31%2F07%2F2018&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search",
-        jar: jar
-    };
-
-    body = await request(options);
-    $ = cheerio.load(body);
+    // Parse the search results.
 
     for (let element of $("h4.non_table_headers").get()) {
-        let subElement = $(element).next("div");
-        console.log(subElement);
+        console.log($(element).text());
+        for (let subElement of $(element).next("div").get()) {
+            for (let pairElement of $(subElement).find("p.rowDataOnly").get()) {
+                let key = $(pairElement).children("span.key").text();
+                let value = $(pairElement).children("span.inputField").text();
+                console.log(`    ${key}: ${value}`);
+            }
+        }
     }
-console.log("Test");
 
     // Process the text from each page.
     //
