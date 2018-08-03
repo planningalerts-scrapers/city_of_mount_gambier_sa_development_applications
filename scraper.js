@@ -11,7 +11,8 @@ let request = require("request-promise-native");
 let sqlite3 = require("sqlite3").verbose();
 let moment = require("moment");
 
-const DevelopmentApplicationsUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiryInit.do?nodeNum=21461";
+const DevelopmentApplicationMainUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiryInit.do?nodeNum=21461";
+const DevelopmentApplicationSearchUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom={0}&dateTo={1}&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search";
 const CommentUrl = "mailto:city@mountgambier.sa.gov.au";
 
 // Sets up an sqlite database.
@@ -67,97 +68,52 @@ async function main() {
 
     // Retrieve the main page.
 
-    console.log(`Retrieving page: ${DevelopmentApplicationsUrl}`);
+    console.log(`Retrieving page: ${DevelopmentApplicationMainUrl}`);
     let jar = request.jar();  // this cookie jar will end up containing the JSESSIONID_live cookie after the first request; the cookie is required for the second request
-    await request({ url: DevelopmentApplicationsUrl, jar: jar });
+    await request({ url: DevelopmentApplicationMainUrl, jar: jar });
 
     // Retrieve the results of a search.
 
-    console.log("Retrieving search results.");
-    let body = await request({ url: "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom=01%2F07%2F2018&dateTo=31%2F07%2F2018&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search", jar: jar });
+    let dateFrom = encodeURIComponent(moment().subtract(1, "months").format("DD/MM/YYYY"));
+    let dateTo = encodeURIComponent(moment().format("DD/MM/YYYY"));
+    let developmentApplicationSearchUrl = DevelopmentApplicationSearchUrl.replace(/\{0\}/g, dateFrom).replace(/\{1\}/g, dateTo);
+    console.log(`Retrieving search results for: ${developmentApplicationSearchUrl}`);
+
+    let body = await request({ url: developmentApplicationSearchUrl, jar: jar });
     let $ = cheerio.load(body);
 
     // Parse the search results.
 
     for (let element of $("h4.non_table_headers").get()) {
-        console.log($(element).text());
+        let applicationNumber = "";
+        let address = $(element).text().trim().replace(/\s\s+/g, " ");
+        let reason = "";
+        let receivedDate = "";
         for (let subElement of $(element).next("div").get()) {
             for (let pairElement of $(subElement).find("p.rowDataOnly").get()) {
-                let key = $(pairElement).children("span.key").text();
-                let value = $(pairElement).children("span.inputField").text();
-                console.log(`    ${key}: ${value}`);
+                let key = $(pairElement).children("span.key").text().trim();
+                let value = $(pairElement).children("span.inputField").text().trim();
+                if (key === "Type of Work")
+                    reason = value;
+                else if (key === "Application No.")
+                    applicationNumber = value;
+                else if (key === "Date Lodged")
+                    receivedDate = value;
             }
         }
+        let parsedReceivedDate = moment(receivedDate, "D/MM/YYYY", true);  // allows the leading zero of the day to be omitted
+        if (applicationNumber !== "" && address !== "") {
+            await insertRow(database, {
+                applicationNumber: applicationNumber,
+                address: address,
+                reason: reason,
+                informationUrl: DevelopmentApplicationMainUrl,
+                commentUrl: CommentUrl,
+                scrapeDate: moment().format("YYYY-MM-DD"),
+                receivedDate: parsedReceivedDate.isValid ? parsedReceivedDate.format("YYYY-MM-DD") : ""
+            });
+        }
     }
-
-    // Process the text from each page.
-    //
-    // for (let pageIndex = 1; pageIndex <= pageCount; pageIndex++) {
-    //     console.log(`Parsing page ${pageIndex} of ${pageCount}.`);
-    //
-    //     // Retrieve a subsequent page.
-    //
-    //     if (pageIndex >= 2) {
-    //         try {
-    //             let body = await request.post({
-    //                 url: DevelopmentApplicationsUrl,
-    //                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    //                 form: {
-    //                     __EVENTARGUMENT: `Page$${pageIndex}`,
-    //                     __EVENTTARGET: "ctl00$Content$cusResultsGrid$repWebGrid$ctl00$grdWebGridTabularView",
-    //                     __EVENTVALIDATION: eventValidation,
-    //                     __VIEWSTATE: viewState
-    //             }});
-    //             $ = cheerio.load(body);
-    //         } catch (ex) {
-    //             console.log(ex);
-    //             console.log("Continuing to the next page.");
-    //             continue;
-    //         }
-    //     }
-    //
-    //     // Use cheerio to find all development applications listed in the current page.
-    //
-    //     for (let element of $("table.grid td a").get()) {
-    //         // Check that a valid development application number was provided.
-    //
-    //         let applicationNumber = element.children[0].data.trim();
-    //         if (!/^[0-9]{3}\/[0-9]{5}\/[0-9]{2}$/.test(applicationNumber))
-    //             continue;
-    //
-    //         // Retrieve the page that contains the details of the development application.
-    //
-    //         let developmentApplicationUrl = DevelopmentApplicationUrl + encodeURIComponent(applicationNumber);
-    //         let body = null;
-    //         try {
-    //             body = await request(developmentApplicationUrl);
-    //         } catch (ex) {
-    //             console.log(ex);
-    //             console.log("Continuing to the next development application.");
-    //             continue;
-    //         }
-    //
-    //         // Extract the details of the development application and insert those details into the
-    //         // database as a row in a table.
-    //
-    //         let $ = cheerio.load(body);
-    //         let receivedDate = moment($("td.headerColumn:contains('Lodgement Date') ~ td").text().trim(), "D/MM/YYYY", true);  // allows the leading zero of the day to be omitted
-    //         let address = $($("table.grid th:contains('Address')").parent().parent().find("tr.normalRow td")[0]).text().trim();
-    //         let reason = $("td.headerColumn:contains('Description') ~ td").text().trim();  
-    //
-    //         if (address.length > 0) {
-    //             await insertRow(database, {
-    //                 applicationNumber: applicationNumber,
-    //                 address: address,
-    //                 reason: reason,
-    //                 informationUrl: developmentApplicationUrl,
-    //                 commentUrl: CommentUrl,
-    //                 scrapeDate: moment().format("YYYY-MM-DD"),
-    //                 receivedDate: receivedDate.isValid ? receivedDate.format("YYYY-MM-DD") : ""
-    //             });
-    //         }
-    //     }
-    // }
 }
 
 main().then(() => console.log("Complete.")).catch(error => console.error(error));
