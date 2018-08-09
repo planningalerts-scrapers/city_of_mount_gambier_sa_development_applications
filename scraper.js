@@ -85,7 +85,7 @@ async function main() {
     for (let element of $("h4.non_table_headers").get()) {
         let address = $(element).text().trim().replace(/\s\s+/g, " ");
         let applicationNumber = "";
-        let reason = "No description provided";
+        let reason = "";
         let receivedDate = "";
 
         for (let subElement of $(element).next("div").get()) {
@@ -108,7 +108,7 @@ async function main() {
             await insertRow(database, {
                 applicationNumber: applicationNumber,
                 address: address,
-                reason: reason,
+                reason: ((reason.trim() === "") ? "No description provided" : reason),
                 informationUrl: DevelopmentApplicationMainUrl,
                 commentUrl: CommentUrl,
                 scrapeDate: moment().format("YYYY-MM-DD"),
