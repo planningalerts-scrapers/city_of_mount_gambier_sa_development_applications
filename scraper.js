@@ -85,7 +85,7 @@ async function main() {
     for (let element of $("h4.non_table_headers").get()) {
         let address = $(element).text().trim().replace(/\s\s+/g, " ");
         let applicationNumber = "";
-        let reason = "";
+        let reason = "No description provided";
         let receivedDate = "";
 
         for (let subElement of $(element).next("div").get()) {
