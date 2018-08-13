@@ -13,7 +13,6 @@ let moment = require("moment");
 
 const DevelopmentApplicationMainUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiryInit.do?nodeNum=21461";
 const DevelopmentApplicationSearchUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom={0}&dateTo={1}&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search";
-const DevelopmentApplicationInformationUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number={0}";
 const CommentUrl = "mailto:city@mountgambier.sa.gov.au";
 
 // Sets up an sqlite database.
@@ -110,7 +109,7 @@ async function main() {
                 applicationNumber: applicationNumber,
                 address: address,
                 reason: ((reason.trim() === "") ? "No description provided" : reason),
-                informationUrl: DevelopmentApplicationInformationUrl.replace(/\{0\}/g, encodeURIComponent(applicationNumber)),
+                informationUrl: DevelopmentApplicationMainUrl,
                 commentUrl: CommentUrl,
                 scrapeDate: moment().format("YYYY-MM-DD"),
                 receivedDate: parsedReceivedDate.isValid ? parsedReceivedDate.format("YYYY-MM-DD") : ""
