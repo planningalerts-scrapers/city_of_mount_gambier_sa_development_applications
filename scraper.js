@@ -108,7 +108,7 @@ async function main() {
             await insertRow(database, {
                 applicationNumber: applicationNumber,
                 address: address,
-                reason: reason,
+                reason: ((reason.trim() === "") ? "No description provided" : reason),
                 informationUrl: DevelopmentApplicationMainUrl,
                 commentUrl: CommentUrl,
                 scrapeDate: moment().format("YYYY-MM-DD"),
