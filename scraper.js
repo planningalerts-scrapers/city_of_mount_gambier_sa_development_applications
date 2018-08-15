@@ -71,9 +71,9 @@ async function main() {
     let jar = request.jar();  // this cookie jar will end up containing the JSESSIONID_live cookie after the first request; the cookie is required for the second request
     await request({ url: DevelopmentApplicationMainUrl, jar: jar });
 
-    // Retrieve the results of a search for the last month.
+    // Retrieve the results of a search for the last two months.
 
-    let dateFrom = encodeURIComponent(moment().subtract(1, "months").format("DD/MM/YYYY"));
+    let dateFrom = encodeURIComponent(moment().subtract(2, "months").format("DD/MM/YYYY"));
     let dateTo = encodeURIComponent(moment().format("DD/MM/YYYY"));
     let developmentApplicationSearchUrl = DevelopmentApplicationSearchUrl.replace(/\{0\}/g, dateFrom).replace(/\{1\}/g, dateTo);
     console.log(`Retrieving search results for: ${developmentApplicationSearchUrl}`);
