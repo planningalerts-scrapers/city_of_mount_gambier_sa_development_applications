@@ -13,7 +13,6 @@ let moment = require("moment");
 
 const DevelopmentApplicationMainUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiryInit.do?nodeNum=21461";
 const DevelopmentApplicationSearchUrl = "https://ecouncil.mountgambier.sa.gov.au/eservice/daEnquiry.do?number=&lodgeRangeType=on&dateFrom={0}&dateTo={1}&detDateFromString=&detDateToString=&streetName=&suburb=0&unitNum=&houseNum=0%0D%0A%09%09%09%09%09&planNumber=&strataPlan=&lotNumber=&propertyName=&searchMode=A&submitButton=Search";
-const CommentUrl = "mailto:city@mountgambier.sa.gov.au";
 
 // Sets up an sqlite database.
 
@@ -21,7 +20,7 @@ async function initializeDatabase() {
     return new Promise((resolve, reject) => {
         let database = new sqlite3.Database("data.sqlite");
         database.serialize(() => {
-            database.run("create table if not exists [data] ([council_reference] text primary key, [address] text, [description] text, [info_url] text, [comment_url] text, [date_scraped] text, [date_received] text, [on_notice_from] text, [on_notice_to] text)");
+            database.run("create table if not exists [data] ([council_reference] text primary key, [address] text, [description] text, [info_url] text, [date_scraped] text, [date_received] text)");
             resolve(database);
         });
     });
@@ -31,17 +30,14 @@ async function initializeDatabase() {
 
 async function insertRow(database, developmentApplication) {
     return new Promise((resolve, reject) => {
-        let sqlStatement = database.prepare("insert or replace into [data] values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        let sqlStatement = database.prepare("insert or replace into [data] values (?, ?, ?, ?, ?, ?)");
         sqlStatement.run([
             developmentApplication.applicationNumber,
             developmentApplication.address,
             developmentApplication.description,
             developmentApplication.informationUrl,
-            developmentApplication.commentUrl,
             developmentApplication.scrapeDate,
-            developmentApplication.receivedDate,
-            null,
-            null
+            developmentApplication.receivedDate
         ], function(error, row) {
             if (error) {
                 console.error(error);
@@ -107,7 +103,6 @@ async function main() {
                 address: address,
                 description: ((description.trim() === "") ? "No description provided" : description),
                 informationUrl: DevelopmentApplicationMainUrl,
-                commentUrl: CommentUrl,
                 scrapeDate: moment().format("YYYY-MM-DD"),
                 receivedDate: parsedReceivedDate.isValid ? parsedReceivedDate.format("YYYY-MM-DD") : ""
             });
